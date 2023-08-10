@@ -1,0 +1,650 @@
+import java.io.File;
+import java.io.IOException;
+import java.text.Format;
+import java.text.SimpleDateFormat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Random;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.openqa.selenium.TimeoutException;
+
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.By;
+import org.openqa.selenium.ElementNotInteractableException;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.remote.UnreachableBrowserException;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.heimdall.util.Utils;
+import com.shaft.element.ElementActions;
+import com.shaft.io.ReportManager;
+
+
+public class Utils {
+
+	static ArrayList<String> treeMdsNames;
+	static String compNode="";
+	static String nodeValue="";
+	static String mainNode="";
+	
+
+	public static String readFromXMLByXpath(String fileName, String ExpressionXpathFormat, String AttributeName) {
+		String testinput = null;
+		
+		File fXmlFile = new File(fileName);
+		System.out.println("fXmlFile: " + fXmlFile);
+
+		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder dBuilder = null;
+		try {
+			dBuilder = dbFactory.newDocumentBuilder();
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		}
+		Document doc = null;
+		try {
+			doc = dBuilder.parse(fXmlFile);
+		} catch (SAXException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
+		XPath xPath = XPathFactory.newInstance().newXPath();
+		String expression = String.format(ExpressionXpathFormat);
+		System.out.println(expression);
+		Node node = null;
+		try {
+			node = (Node) xPath.compile(expression).evaluate(doc, XPathConstants.NODE);
+
+		} catch (XPathExpressionException e) {
+			e.printStackTrace();
+		}
+
+		testinput = node != null ? (node.getTextContent()) : "cannot read the test case xml file";
+
+		String nodeName = node.getNodeName();
+		// String localnodeName = node.getLocalName();
+		// String nodeValue = node.getNodeValue();
+
+		System.out.println("Node name, Local, Value --> " + nodeName);
+
+		// node.getChildNodes().item(1).getAttributes().getNamedItem("itemName").getTextContent();
+		testinput = node.getAttributes().getNamedItem(AttributeName).getTextContent();
+
+		return testinput;
+		
+	}
+
+
+	public static ArrayList<String> readNodeValueinXMLByNodeName(String FileName, String NodeName, String AttributeName) 
+	{
+		ArrayList<String> AttValue= new ArrayList<String>();
+		try {
+			
+			
+			File fXmlFile = new File(FileName);
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			Document doc = dBuilder.parse(fXmlFile);
+			doc.getDocumentElement().normalize();
+
+			//System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
+			NodeList nList = doc.getElementsByTagName(NodeName);
+			//System.out.println("----------------------------");
+
+			for (int temp = 0; temp < nList.getLength(); temp++) 
+			{
+				Node nNode = nList.item(temp);
+				System.out.println("\nCurrent Element :" + nNode.getNodeName());
+				if (nNode.getNodeType() == Node.ELEMENT_NODE) 
+				{
+					Element eElement = (Element) nNode;
+					AttValue.add(eElement.getAttribute(AttributeName));
+					//AttValue =  eElement.getNodeValue();
+					//System.out.println("Value : " + AttValue);
+				}
+			}
+			
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		
+		return AttValue;	
+	}
+
+	public static ArrayList<String> parseXml(String FileName) {
+		try {
+
+			treeMdsNames = new ArrayList<String>();
+			File file = new File(FileName);
+
+			DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document doc = dBuilder.parse(file);
+
+			// --System.out.println("Root element :" +
+			// doc.getDocumentElement().getNodeName());
+			// --System.out.println("----------------------------");
+
+			if (doc.hasChildNodes()) {
+				printNote(doc.getChildNodes());
+			}
+
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+
+		PrintArray(treeMdsNames);
+		return treeMdsNames;
+	}
+
+	private static void printNote(NodeList nodeList) {
+		
+		for (int count = 0; count < nodeList.getLength(); count++) {
+			Node tempNode = nodeList.item(count);
+			// make sure it's element node.
+			if (tempNode.getNodeType() == Node.ELEMENT_NODE) {
+				// get node name and value
+				if (tempNode.getNodeName() == "ProductID" || tempNode.getNodeName() == "Material" || tempNode.getNodeName() == "Substance" || tempNode.getNodeName() == "Amount") 
+				{
+					// System.out.println("\nNode Name =" + tempNode.getNodeName() + " [OPEN]");
+					// System.out.println("Node Value =" + tempNode.getTextContent());
+					
+					if (tempNode.hasAttributes()) {
+						// get attributes names and values
+						NamedNodeMap nodeMap = tempNode.getAttributes();
+						for (int i = 0; i < nodeMap.getLength(); i++) 
+						{
+							Node att = nodeMap.item(i);
+							
+							if (att.getNodeName() == "itemName" || att.getNodeName() == "materialName" || att.getNodeName() == "name" || att.getNodeName() == "value" || att.getNodeName() == "UOM") 
+							{
+								if 	(att.getNodeName() == "itemName")
+								{
+								  mainNode = "ProductID";
+								}
+								else if (att.getNodeName() == "materialName")
+								{
+								  mainNode = "Material";
+								}
+								else if (att.getNodeName() == "name")
+								{
+									mainNode = "Substance";
+								}
+
+								//System.out.println("attr name : " + att.getNodeName());
+								nodeValue = att.getNodeValue();
+								
+								if (nodeValue.contains("massPercent")) {nodeValue= "%";} 
+								System.out.println("attr value : <" + mainNode + "> : " + nodeValue);
+								
+								if (mainNode == "ProductID")
+								{
+									if (att.getNodeName() == "itemName") 
+									{
+										treeMdsNames.add(nodeValue.trim());
+										compNode= "";
+									}
+								}
+								else
+								{
+									//if (att.getNodeName() == "UOM") {nodeValue = nodeValue + " ";}
+									compNode =  nodeValue + compNode;
+									if (att.getNodeName() == "value") 
+									{
+										treeMdsNames.add(compNode.trim());
+										compNode= "";
+									}
+								}
+							}
+						}
+						
+					}
+				}
+				if (tempNode.hasChildNodes()) {
+					// loop again if has child nodes
+					printNote(tempNode.getChildNodes());
+				}
+
+				//if (tempNode.getNodeName() == "ProductID" || tempNode.getNodeName() == "Material"|| tempNode.getNodeName() == "Substance") 
+				//{
+					// --System.out.println("Node Name =" + tempNode.getNodeName() + " [CLOSE]");
+				//}
+
+			}
+		}
+		
+	}
+
+	public static void PrintArray(ArrayList<String> Ar) {
+		ReportManager.log("--------------- Array -----------------");
+		ReportManager.log(Arrays.toString(Ar.toArray())); 
+	}
+
+	public static void PrintArray(String[][] Ar) {
+		ReportManager.log(" 2D Array --> " + Arrays.deepToString(Ar)); 
+	}
+	
+	public static boolean CompareArrays(String[][] Ar1, String[][] Ar2) {
+		ReportManager.log("--------------- Compare 2D Arrays-----------------");
+		PrintArray(Ar1);
+		PrintArray(Ar2);
+		ReportManager.log("--------------------------------------------------");
+		return Arrays.deepEquals(Ar1,Ar2);
+	}
+	
+	
+	public static boolean comapreStrings(String s1 ,String s2, String ValidatedItem)
+	{
+		boolean flag= false;
+		s1 = s1.trim();
+		s2 = s2.trim();
+		if (s1.equalsIgnoreCase(s2))
+		  flag= true;
+		else
+		  flag= false;
+		
+		if (!ValidatedItem.equalsIgnoreCase(""))
+		{
+			if (flag==true)
+				ReportManager.log(ValidatedItem + " : is validated successfully ");	
+			else
+				ReportManager.log(ValidatedItem + " : is failed !! where the screen value: ["+ s1 + "] and the expected value: ["+ s2 + "]");	
+		}
+			
+		return flag;
+	}
+
+	
+	public static String getCurrentDate(String format)
+	{
+		/*String MyDate;
+		
+		LocalDateTime now = LocalDateTime.now();
+		
+		/*
+		now.getDayOfMonth();
+		now.getMonth();
+		now.getYear();
+		*/
+		
+		/*MyDate = now.getMonth().getValue()+"/"+now.getDayOfMonth()+"/"+now.getYear();
+		ReportManager.log(" The current date: "+ MyDate);
+		return MyDate ;*/
+		
+		Format formatter = new SimpleDateFormat(format);
+		String today = formatter.format(new Date());
+		ReportManager.log(" The current date: "+ today);
+		return today;
+	}
+
+	public static String AddDayMonthYeartoCurrentDate (String format, String calendarType, int calendarNo )
+	{
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        
+        if (calendarType.equalsIgnoreCase("dd"))
+           {c.add(Calendar.DAY_OF_YEAR, calendarNo);}
+        else if (calendarType.equalsIgnoreCase("ww"))
+           {c.add(Calendar.WEEK_OF_YEAR, calendarNo);}
+        else if (calendarType.equalsIgnoreCase("mm"))
+           {c.add(Calendar.MONTH, calendarNo);}
+        else if (calendarType.equalsIgnoreCase("yy"))
+           {c.add(Calendar.YEAR, calendarNo);}
+        
+        String MyDate = sdf.format(c.getTime());
+        System.out.println("selected  day is "+ MyDate);
+        
+        return MyDate ;
+
+	}
+	
+    public static String getRandomString(int NoOfChars)
+	{
+    	String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		int N = alphabet.length();
+		Random RandomObj = new Random();
+		char[] nameCharArr = new char[NoOfChars];
+
+		for (int i = 0; i < NoOfChars ; i++) {
+			nameCharArr[i]=alphabet.charAt(RandomObj.nextInt(N));
+		}
+
+		String nameString = String.copyValueOf(nameCharArr);
+		nameString = "AT" + nameString.toLowerCase();
+		return nameString;
+	}
+    
+    public static String getRandomStringNumber(int NoOfChars, int MaxRndNumber)
+	{
+    	Random RandomObj = new Random();
+		// Obtain a number between [0 - MaxRndNumber].
+		int N= RandomObj.nextInt(MaxRndNumber);
+		
+		String generatedName = getRandomString(NoOfChars) + N;
+
+		return generatedName;	
+	}
+    public static String getRandomStringNumber(int NoOfChars)
+	{
+    	//Random RandomObj = new Random();
+		// Obtain a number between [0 - MaxRndNumber].
+		//int N= RandomObj.nextInt(MaxRndNumber);
+		
+		String generatedName = getRandomString(NoOfChars) + getCurrentDate("ddMMHHmmss");
+
+		return generatedName;	
+	}
+    
+	public void Robotfunction(String us, String pass) throws AWTException
+    {
+		/////////////////////////////////////////////////////////////////////////////
+		Robot rb = new Robot();
+		sleep(10000);
+		ReportManager.log ("<--- Start using the Robot Function --->");
+		// Enter user name in username field 
+		StringSelection username = new StringSelection(us);
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(username, null);            
+		rb.keyPress(KeyEvent.VK_CONTROL);
+		rb.keyPress(KeyEvent.VK_V);
+		rb.keyRelease(KeyEvent.VK_V);
+		rb.keyRelease(KeyEvent.VK_CONTROL);
+		
+		// press tab to move to password field
+		rb.keyPress(KeyEvent.VK_TAB);
+		rb.keyRelease(KeyEvent.VK_TAB);
+		sleep(5000);
+		ReportManager.log ("Click TAB and move to the password");
+		
+		//Enter password in password field
+		StringSelection pwd = new StringSelection(pass);
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(pwd, null);
+		rb.keyPress(KeyEvent.VK_CONTROL);
+		rb.keyPress(KeyEvent.VK_V);
+		rb.keyRelease(KeyEvent.VK_V);
+		rb.keyRelease(KeyEvent.VK_CONTROL);
+		
+		//press enter
+		ReportManager.log ("Click VK_ENTER");
+		rb.keyPress(KeyEvent.VK_ENTER);
+		rb.keyRelease(KeyEvent.VK_ENTER);
+		ReportManager.log ("<--- End using the Robot Function --->");
+		/////////////////////////////////////////////////////////////////////////////
+    }
+	
+	// methods
+	public void rightClick(WebDriver driver, By elementLocator) {
+		WebElement element = null;
+		try {
+			element = driver.findElement(elementLocator);
+			Actions action = new Actions(driver).contextClick(element);
+			action.build().perform();
+
+			ReportManager.log("[Right Click] sucessfully performed on the element");
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Right Click] :Element is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Right Click] : Element " + element + " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[Right Click] : Element " + element + " was not clickable " + e.getStackTrace());
+
+		}
+	}
+
+	public void doubleClick(WebDriver driver, By elementLocator) {
+		WebElement element = null;
+		try {
+			element = driver.findElement(elementLocator);
+			Actions action = new Actions(driver);
+			action.doubleClick(element).perform();
+
+			ReportManager.log("[Double Click] sucessfully performed on the element");
+
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Double Click] :Element is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Double Click] : Element " + element + " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[Double Click] :Element " + element + " was not clickable " + e.getStackTrace());
+
+		}
+	}
+
+	public void cntrlClick(WebDriver driver, By elementLocator) {
+		WebElement element = null;
+		try {
+			/*
+			 * Actions action=new Actions(driver);
+			 * action.keyDown(Keys.CONTROL).build().perform();
+			 * driver.findElement(By.xpath(".//*[@id='selectable']/li[1]")).click();
+			 * driver.findElement(By.xpath(".//*[@id='selectable']/li[3]")).click();
+			 * action.keyUp(Keys.CONTROL).build().perform();
+			 */
+
+			element = driver.findElement(elementLocator);
+
+			Actions action = new Actions(driver);
+			action.keyDown(Keys.CONTROL).build().perform();
+			
+			ElementActions.click(driver, elementLocator);
+			//executeJavaScript(driver, elementLocator,"arguments[arguments.length - 1].click();");
+			
+			action.keyUp(Keys.CONTROL).build().perform();
+
+			ReportManager.log("[Control Click] sucessfully performed on the element");
+
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Control Click] :Element is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[Control Click] : Element " + element + " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[Control Click] : Element " + element + " was not clickable " + e.getStackTrace());
+
+		}
+	}
+
+	public void cntrlS(WebDriver driver, By elementLocator) {
+
+		try {
+			Actions actions = new Actions(driver);
+			actions.keyDown(Keys.CONTROL).sendKeys("s").keyUp(Keys.CONTROL).perform();
+			ReportManager.log("[Control Click+S] sucessfully performed ");
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[Control Click +S] : failed due to  " + e.getStackTrace());
+
+		}
+	}
+
+	public List<WebElement> getTableRows(WebDriver driver, By elementLocator) {
+		WebElement table = null;
+		List<WebElement> rows = new ArrayList<WebElement>();
+		try {
+			table = driver.findElement(elementLocator);
+			rows = table.findElements(By.tagName("tr"));
+			ReportManager.log("[getTableRows] : Rows returned sucessfully from table");
+			return rows;
+
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getTableRows]  :table is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getTableRows]  : table " + table + " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[getTableRows]  : table " + table + " was not clickable " + e.getStackTrace());
+
+		}
+		return rows;
+	}
+
+	// get specific row
+	public List<WebElement> getRowCells(WebDriver driver, By tableLocator, String cellText) {
+		WebElement cell = null;
+		WebElement row = null;
+		List<WebElement> rows = new ArrayList<WebElement>();
+		List<WebElement> cols = new ArrayList<WebElement>();
+		String cellName;
+		try {
+			rows = getTableRows(driver, tableLocator);
+			outerloop: for (int i = 0; i < rows.size(); i++) {
+				row = rows.get(i);
+				cols = row.findElements(By.tagName("td"));
+				for (int j = 0; j < cols.size(); j++) {
+					cell = cols.get(j);
+					cellName = ElementActions.getText(driver, By.id(cell.getAttribute("id")));
+					if (cellName != null && cellName.equals(cellText)) {
+						break outerloop;
+					}
+				}
+
+			}
+			ReportManager.log("[getRowCells] : All columns inlcude cell with text = " + cellText
+					+ " returned sucessfully from table");
+			return cols;
+
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowCells]  :All columns inlcude cell  with text = " + cellText
+					+ " is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowCells]  :All columns inlcude cell  with text = " + cellText
+					+ " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowCells]  :All columns inlcude cell  with text = " + cellText
+					+ " was not found in DOM " + e.getStackTrace());
+
+		}
+		return cols;
+	}
+
+	// get all values for specific cell in more than 1 row
+	public ArrayList<String> getRowsCellValues(WebDriver driver, By tableLocator, int cellIndex) {
+
+		WebElement row = null;
+		List<WebElement> rows = new ArrayList<WebElement>();
+		List<WebElement> cols = new ArrayList<WebElement>();
+		ArrayList<String> cellsValue = new ArrayList<String>();
+
+		try {
+			rows = getTableRows(driver, tableLocator);
+			for (int i = 0; i < rows.size(); i++) {
+				row = rows.get(i);
+				cols = row.findElements(By.tagName("td"));
+
+				cellsValue.add(ElementActions.getText(driver, By.id(cols.get(cellIndex).getAttribute("id"))));
+			}
+			ReportManager.log("[getRowsCellValue] : All cells values in cellindex = " + cellIndex
+					+ " returned sucessfully from table");
+			return cellsValue;
+
+		} catch (StaleElementReferenceException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowsCellValue] : All cells values in cellindex = " + cellIndex
+					+ " is not attached to the page document " + e.getStackTrace());
+
+		} catch (NoSuchElementException e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowsCellValue] : All cells values in cellindex = " + cellIndex
+					+ " was not found in DOM " + e.getStackTrace());
+
+		} catch (Exception e) {
+			ReportManager.log(e);
+			ReportManager.log("[getRowsCellValue] : All cells values in cellindex = " + cellIndex
+					+ "was not found in DOM " + e.getStackTrace());
+
+		}
+		return cellsValue;
+	}
+
+	public void switchToIframe(WebDriver driver, By elementLocator, int numberOfTries) {
+		ReportManager.log("<-- Switch to PopUp window --> ");
+		waitforPageLoad(driver, 100);
+		sleep(5000);
+		ElementActions.waitForElementToBePresent(driver, elementLocator, numberOfTries, true);
+		driver.switchTo().frame((WebElement) driver.findElement(elementLocator));
+	}
+	
+	public void sleep(Integer milliSeconds) {
+		long secondsLong = (long) milliSeconds;
+		try {
+			Thread.sleep(secondsLong);
+		} catch (Exception e) {
+			ReportManager.log(e);
+			// InterruptedException
+		}
+	}
+	
+	public void waitforPageLoad(WebDriver driver, int timeout) {
+		driver.manage().timeouts().implicitlyWait(timeout, TimeUnit.SECONDS);
+	}
+	
+	public void executeJavaScript(WebDriver driver, By elementLocator, String JavaScript) {
+		ReportManager.log("<-- Handle this element "+ elementLocator+ " By JavaScript --> " + JavaScript);
+		((JavascriptExecutor) driver).executeScript(JavaScript, driver.findElement(elementLocator));
+		ReportManager.log("<-- Handle this element "+ elementLocator+ "By JavaScript -->  Done ");
+	}
+	
+	public void WaituntilCompleteLoading(WebDriver driver, By LoadingElement, int timeout)
+	{
+		new WebDriverWait(driver, timeout).until(ExpectedConditions.invisibilityOfElementLocated(LoadingElement));
+	}
+	
+}
